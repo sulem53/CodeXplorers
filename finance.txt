@@ -1,0 +1,139 @@
+import tkinter as tk
+from tkinter import ttk
+import time
+
+class FinanceAssistantApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("AI Personal Finance Assistant")
+        self.root.geometry("1100x700")
+        self.root.configure(bg="#1e1e2f")
+        self.root.resizable(False, False)
+
+        # --- Style Configuration ---
+        self.style = ttk.Style()
+        self.style.theme_use('clam') # Using a theme that allows more customization
+
+        # Colors
+        BG_DARK = "#1e1e2f"
+        BG_LIGHT = "#27293d"
+        TEXT_PRIMARY = "#f0f0f0"
+        TEXT_SECONDARY = "#a0a0b0"
+        ACCENT_PRIMARY = "#6c63ff"
+        ACCENT_USER = "#4a4e8d"
+        
+        # Configure styles for widgets
+        self.style.configure("TFrame", background=BG_LIGHT)
+        self.style.configure("TLabel", background=BG_LIGHT, foreground=TEXT_PRIMARY, font=("Poppins", 11))
+        self.style.configure("Header.TLabel", font=("Poppins", 16, "bold"), foreground=ACCENT_PRIMARY)
+        self.style.configure("SidebarHeader.TLabel", font=("Poppins", 14, "bold"))
+        self.style.configure("SidebarSub.TLabel", foreground=TEXT_SECONDARY, font=("Poppins", 10))
+        self.style.configure("TCheckbutton", background=BG_LIGHT, foreground=TEXT_PRIMARY, font=("Poppins", 11))
+        self.style.map("TCheckbutton",
+            background=[('active', BG_LIGHT)],
+            indicatorcolor=[('selected', ACCENT_PRIMARY), ('!selected', BG_DARK)],
+            indicatorrelief=[('pressed', 'sunken'), ('!pressed', 'raised')]
+        )
+        self.style.configure("TButton", background=ACCENT_PRIMARY, foreground="white", font=("Poppins", 12), borderwidth=0)
+        self.style.map("TButton", background=[('active', '#5a52e0')])
+
+
+        # --- Main Layout Frames ---
+        # Sidebar Frame (Left)
+        sidebar_frame = ttk.Frame(self.root, width=300, style="TFrame")
+        sidebar_frame.pack(side="left", fill="y", padx=(10, 0), pady=10)
+        sidebar_frame.pack_propagate(False)
+
+        # Chat Area Frame (Right)
+        chat_area_frame = ttk.Frame(self.root, style="TFrame")
+        chat_area_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+        # --- Sidebar Widgets ---
+        sidebar_header = ttk.Label(sidebar_frame, text="Data Permissions", style="SidebarHeader.TLabel")
+        sidebar_header.pack(pady=(10, 5), padx=20, anchor="w")
+
+        sidebar_sub = ttk.Label(sidebar_frame, text="Toggle which data to grant me access to.", style="SidebarSub.TLabel")
+        sidebar_sub.pack(pady=(0, 20), padx=20, anchor="w")
+
+        permissions = [
+            ("Access to Assets", True),
+            ("Access to Liabilities", True),
+            ("Access to Transactions", True),
+            ("Access to EPF", False),
+            ("Access to Credit", False),
+            ("Access to Investments", True)
+        ]
+
+        for text, checked in permissions:
+            var = tk.BooleanVar(value=checked)
+            cb = ttk.Checkbutton(sidebar_frame, text=text, variable=var, style="TCheckbutton")
+            cb.pack(fill="x", padx=20, pady=8, anchor="w")
+
+        # --- Chat Area Widgets ---
+        # Header
+        chat_header = ttk.Label(chat_area_frame, text="💰 AI Personal Finance Assistant", style="Header.TLabel", anchor="center")
+        chat_header.pack(pady=20, fill="x")
+
+        # Messages Display
+        self.chat_messages = tk.Text(chat_area_frame, wrap="word", bg=BG_DARK, fg=TEXT_PRIMARY,
+                                     font=("Poppins", 11), bd=0, highlightthickness=0, state="disabled", padx=10, pady=10)
+        self.chat_messages.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Configure tags for styling messages
+        self.chat_messages.tag_configure("user", justify="right", foreground="white", background=ACCENT_USER, 
+                                         spacing3=10, lmargin1=60, rmargin=10, relief="raised", borderwidth=2,
+                                         font=("Poppins", 11, "bold"))
+        self.chat_messages.tag_configure("assistant", justify="left", foreground=TEXT_PRIMARY, background=BG_LIGHT, 
+                                         spacing3=10, rmargin1=60, lmargin=10, relief="raised", borderwidth=2)
+        
+        # Input Frame
+        input_frame = ttk.Frame(chat_area_frame, style="TFrame")
+        input_frame.pack(fill="x", padx=10, pady=10)
+
+        self.user_input = ttk.Entry(input_frame, font=("Poppins", 11), style="TEntry")
+        self.user_input.pack(side="left", fill="x", expand=True, ipady=8)
+        self.user_input.bind("<Return>", self.send_message)
+
+        send_button = ttk.Button(input_frame, text="Send ➤", command=self.send_message, style="TButton")
+        send_button.pack(side="right", padx=(10, 0))
+
+        # --- Initial Message ---
+        self.add_message("Hello! I am your personal finance assistant. Ask me anything about your finances.", "assistant")
+
+    def send_message(self, event=None):
+        message_text = self.user_input.get().strip()
+        if not message_text:
+            return
+
+        self.add_message(message_text, "user")
+        self.user_input.delete(0, "end")
+
+        # Schedule AI response
+        self.root.after(1000, self.get_ai_response, message_text)
+
+    def add_message(self, text, sender):
+        self.chat_messages.config(state="normal")
+        self.chat_messages.insert("end", f"{text}\n\n", sender)
+        self.chat_messages.config(state="disabled")
+        self.chat_messages.see("end") # Auto-scroll
+
+    def get_ai_response(self, user_text):
+        query = user_text.lower()
+        response = ""
+        
+        if "how much" in query and "spend" in query:
+            response = "Based on your transaction history, you spent $2,450.60 last month. Your largest categories were 'Dining Out' and 'Shopping'."
+        elif "investment" in query or "portfolio" in query:
+            response = "Currently, your portfolio is up 5.2% for the year. Your top holdings are in VTI and AAPL."
+        elif "credit" in query or "score" in query:
+            response = "I'm sorry, I don't have access to your Credit data. Please enable it in the Data Permissions sidebar if you'd like me to check."
+        else:
+            response = "I'm sorry, I couldn't understand that query. Please try asking a different question."
+            
+        self.add_message(response, "assistant")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = FinanceAssistantApp(root)
+    root.mainloop()
